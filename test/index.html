@@ -183,6 +183,12 @@ h1{font-family:var(--f-body);font-weight:900;font-size:clamp(30px,8.6vw,42px);li
 .fine{font-size:11.5px;color:var(--muted);line-height:1.6;margin:0}
 .toast{position:fixed;left:50%;bottom:calc(30px + env(safe-area-inset-bottom,0px));transform:translate(-50%,20px);background:var(--ink);color:#fff;padding:8px 16px;border-radius:999px;font-size:13px;opacity:0;transition:.25s;z-index:40;pointer-events:none}
 .toast.show{opacity:1;transform:translate(-50%,0)}
+/* 嵌在官網時：框跟內容一樣高，跳出卡片／提示放在客人目前看到的位置 */
+.embed,.embed body{overflow:hidden}
+.embed .sheet-bg{position:absolute;top:var(--vpT,0px);bottom:auto;height:var(--vpH,100vh)}
+.embed .toast{position:absolute;bottom:auto;top:calc(var(--vpT,0px) + var(--vpH,100vh) - 70px)}
+.embed .diag{position:absolute!important;bottom:auto!important;top:calc(var(--vpT,0px) + 6px)}
+.embed #snow{position:absolute;top:var(--vpT,0px);height:var(--vpH,100vh)}
 /* 看不到的窗暫停動畫，手機比較順 */
 .win.off *{animation-play-state:paused!important}
 </style>
@@ -525,8 +531,21 @@ simAll.onclick=()=>{DAYS.forEach(([d])=>opened[d]=1);save(opened);sim.value='202
 simReset.onclick=()=>{opened={};save(opened);render();toast('已清除，全部變回沒開過')};
 }
 render();
+// 嵌在官網：把內容高度傳給官網，官網回傳客人目前看到哪一段
+const EMBED=MODE!=='sample'&&window.top!==window.self;
+if(EMBED){
+  document.documentElement.classList.add('embed');
+  const postH=()=>{const w=document.querySelector('.wrap');const h=Math.ceil(w.getBoundingClientRect().bottom+window.scrollY);try{parent.postMessage({cdac:'h',h},'*')}catch(e){}};
+  postH();addEventListener('load',postH);addEventListener('resize',postH);
+  try{new ResizeObserver(postH).observe(document.querySelector('.wrap'))}catch(e){}
+  try{document.fonts.ready.then(postH)}catch(e){}
+  let n=0;const iv=setInterval(()=>{postH();if(++n>10)clearInterval(iv)},500);
+  addEventListener('message',e=>{const d=e.data;if(!d||d.cdac!=='vp')return;const st=document.documentElement.style;
+    const t=Math.max(0,Math.round(d.top)),h=Math.round(d.h);st.setProperty('--vpT',t+'px');st.setProperty('--vpH',h+'px');
+    if(window.__snowH!==h){window.__snowH=h;window.dispatchEvent(new Event('snowresize'))}});
+}
 // 測試版：左下角顯示動畫診斷（看手機有沒有在跑動畫）
-if(MODE==='test'){const dg=document.createElement('div');dg.style.cssText='position:fixed;left:6px;bottom:6px;z-index:50;background:rgba(0,0,0,.6);color:#fff;font:11px/1.4 monospace;padding:4px 6px;border-radius:6px;pointer-events:none';document.body.appendChild(dg);
+if(MODE==='test'){const dg=document.createElement('div');dg.className='diag';dg.style.cssText='position:fixed;left:6px;top:6px;z-index:50;background:rgba(0,0,0,.6);color:#fff;font:11px/1.4 monospace;padding:4px 6px;border-radius:6px;pointer-events:none';document.body.appendChild(dg);
   const tick=()=>{let run=0,all=0;try{const A=document.getAnimations();all=A.length;run=A.filter(a=>a.playState==='running').length}catch(e){all=-1}
     dg.textContent=`v2 動畫 ${run}/${all}｜減少動態 ${matchMedia('(prefers-reduced-motion: reduce)').matches?'開':'關'}｜${innerWidth}px`};tick();setInterval(tick,1500)}
 if(MODE==='live'){
@@ -536,7 +555,8 @@ if(MODE==='live'){
 
 (function(){const cv=document.getElementById('snow'),x=cv.getContext('2d');let W,H,F=[];
   const DPR=Math.min(1.5,devicePixelRatio||1);
-  function rs(){W=cv.width=innerWidth*DPR;H=cv.height=innerHeight*DPR}
+  function rs(){W=cv.width=innerWidth*DPR;H=cv.height=(window.__snowH||innerHeight)*DPR}
+  addEventListener('snowresize',rs);
   rs();addEventListener('resize',rs);
   for(let i=0;i<45;i++)F.push({x:Math.random(),y:Math.random(),r:1+Math.random()*2.4,s:.2+Math.random()*.5,w:Math.random()*6});
   if(matchMedia('(prefers-reduced-motion: reduce)').matches)return;
