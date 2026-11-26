@@ -183,7 +183,8 @@ h1{font-family:var(--f-body);font-weight:900;font-size:clamp(30px,8.6vw,42px);li
 .fine{font-size:11.5px;color:var(--muted);line-height:1.6;margin:0}
 .toast{position:fixed;left:50%;bottom:calc(30px + env(safe-area-inset-bottom,0px));transform:translate(-50%,20px);background:var(--ink);color:#fff;padding:8px 16px;border-radius:999px;font-size:13px;opacity:0;transition:.25s;z-index:40;pointer-events:none}
 .toast.show{opacity:1;transform:translate(-50%,0)}
-@media (prefers-reduced-motion:reduce){*{animation:none!important;transition-duration:.01ms!important}}
+/* 看不到的窗暫停動畫，手機比較順 */
+.win.off *{animation-play-state:paused!important}
 </style>
 
 </head><body>
@@ -474,12 +475,13 @@ function roofElves(){
     <path class="sweat" d="M3 -24q2 3 0 5q-2-2 0-5z" fill="#9fd3f0"/></g></g></g>`;
   document.getElementById('roofElves').innerHTML=walker+hanger;
 }
+const IO='IntersectionObserver' in window?new IntersectionObserver(es=>es.forEach(e=>e.target.classList.toggle('off',!e.isIntersecting)),{rootMargin:'80px'}):null;
 function render(){roofElves();
   const n=document.getElementById('note');
   if(today<DAYS[0][0]){n.hidden=false;n.textContent='12/15（二）00:00 開第一扇窗，先收藏起來！'}
   else if(today>DAYS[DAYS.length-1][0]){n.hidden=false;n.textContent='倒數結束囉！開過的窗還能回來看折扣碼（用到 2/4）'}
   else n.hidden=true;
-  grid.innerHTML='';
+  if(IO)IO.disconnect();grid.innerHTML='';
   ORDER.forEach(([d,k],i)=>{
     const st=state(d),door=d==='2027-01-01';
     const b=document.createElement('button');b.type='button';
@@ -487,7 +489,7 @@ function render(){roofElves();
     b.setAttribute('aria-label',`${md(d)} ${{today:'今天，點我打開',open:'已打開',future:'還沒到',missed:'錯過了'}[st]}`);
     b.innerHTML=winSVG(d,k,st,i);
     b.addEventListener('click',()=>tap(b,d,k));
-    grid.appendChild(b);
+    grid.appendChild(b);if(IO)IO.observe(b);
   });
 }
 function tap(b,d,k){
@@ -529,13 +531,14 @@ if(MODE==='live'){
 }
 
 (function(){const cv=document.getElementById('snow'),x=cv.getContext('2d');let W,H,F=[];
-  function rs(){W=cv.width=innerWidth*devicePixelRatio;H=cv.height=innerHeight*devicePixelRatio}
+  const DPR=Math.min(1.5,devicePixelRatio||1);
+  function rs(){W=cv.width=innerWidth*DPR;H=cv.height=innerHeight*DPR}
   rs();addEventListener('resize',rs);
-  for(let i=0;i<70;i++)F.push({x:Math.random(),y:Math.random(),r:1+Math.random()*2.4,s:.2+Math.random()*.5,w:Math.random()*6});
+  for(let i=0;i<45;i++)F.push({x:Math.random(),y:Math.random(),r:1+Math.random()*2.4,s:.2+Math.random()*.5,w:Math.random()*6});
   if(matchMedia('(prefers-reduced-motion: reduce)').matches)return;
   (function f(){x.clearRect(0,0,W,H);x.fillStyle='rgba(255,255,255,.85)';
     F.forEach(p=>{p.y+=p.s/600;p.w+=.01;if(p.y>1.02){p.y=-.02;p.x=Math.random()}
-      x.beginPath();x.arc((p.x+Math.sin(p.w)*.01)*W,p.y*H,p.r*devicePixelRatio,0,7);x.fill()});
+      x.beginPath();x.arc((p.x+Math.sin(p.w)*.01)*W,p.y*H,p.r*DPR,0,7);x.fill()});
     requestAnimationFrame(f)})();
 })();
 </script>
