@@ -519,6 +519,10 @@ simAll.onclick=()=>{DAYS.forEach(([d])=>opened[d]=1);save(opened);sim.value='202
 simReset.onclick=()=>{opened={};save(opened);render();toast('已清除，全部變回沒開過')};
 }
 render();
+// 測試版：左下角顯示動畫診斷（看手機有沒有在跑動畫）
+if(MODE==='test'){const dg=document.createElement('div');dg.style.cssText='position:fixed;left:6px;bottom:6px;z-index:50;background:rgba(0,0,0,.6);color:#fff;font:11px/1.4 monospace;padding:4px 6px;border-radius:6px;pointer-events:none';document.body.appendChild(dg);
+  const tick=()=>{let run=0,all=0;try{const A=document.getAnimations();all=A.length;run=A.filter(a=>a.playState==='running').length}catch(e){all=-1}
+    dg.textContent=`v2 動畫 ${run}/${all}｜減少動態 ${matchMedia('(prefers-reduced-motion: reduce)').matches?'開':'關'}｜${innerWidth}px`};tick();setInterval(tick,1500)}
 if(MODE==='live'){
   try{fetch(location.href.split('#')[0],{method:'HEAD',cache:'no-store'}).then(r=>{const h=r.headers.get('date');if(h){offset=Date.parse(h)-Date.now();const t=tpe(Date.now()+offset);if(t!==today){today=t;render()}}}).catch(()=>{})}catch(e){}
   setInterval(()=>{const t=tpe(Date.now()+offset);if(t!==today){today=t;render()}},30000);
